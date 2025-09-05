@@ -1,0 +1,68 @@
+<!doctype html>
+? 'Write a 14-line sonnet (iambic pentameter feel is optional) with an ending couplet.'
+: form === 'short'
+? 'Write a short poem of 8–12 lines.'
+: 'Write a free-verse poem of 12–20 lines.';
+
+
+let k = '';
+if(keywords && keywords.trim().length) {
+const cleaned = keywords.split(',').map(s=>s.trim()).filter(Boolean).join(', ');
+k = ` Make sure the poem naturally incorporates these Ayurvedic words/phrases: ${cleaned}.`;
+}
+
+
+// Safety: avoid medical advice
+const safety = 'Do not give medical advice or prescriptive health claims; keep the piece creative and metaphorical.';
+
+
+return `${base[style]} ${formInstruction}${k} ${safety}`;
+}
+
+
+async function generatePoem(){
+generateBtn.disabled = true;
+output.textContent = 'Generating…';
+
+
+const style = document.getElementById('style').value;
+const form = document.getElementById('form').value;
+const keywords = document.getElementById('keywords').value;
+const temp = parseFloat(document.getElementById('temp').value);
+const max_tokens = parseInt(document.getElementById('length').value, 10) || 220;
+
+
+const prompt = buildPrompt(style, form, keywords);
+
+
+try{
+const res = await fetch('/.netlify/functions/generate', {
+method:'POST',headers:{'Content-Type':'application/json'},
+body: JSON.stringify({prompt,temperature:temp,max_tokens})
+});
+if(!res.ok){
+const t = await res.text();
+throw new Error(t || 'Server error');
+}
+const data = await res.json();
+// expect { poem: string }
+output.textContent = data.poem || 'No output returned.';
+}catch(err){
+output.textContent = 'Error: ' + (err.message || err);
+}finally{generateBtn.disabled=false}
+}
+
+
+generateBtn.addEventListener('click', generatePoem);
+
+
+downloadBtn.addEventListener('click', ()=>{
+const text = output.textContent || '';
+const blob = new Blob([text],{type:'text/plain'});
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url; a.download = 'ayurveda-poem.txt'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+});
+</script>
+</body>
+</html>
